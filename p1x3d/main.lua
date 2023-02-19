@@ -17,7 +17,7 @@ local sine_text = {
 local t=0
 local freez_plasma=false
 local cam={
-  pos={0,1.2,-1.2},
+  pos={0,1.2,-1},
   spd=0.005,
   fov=35
 }
