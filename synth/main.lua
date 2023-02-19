@@ -38,7 +38,9 @@ plasma={
 }
 
 function love.load()
-    gen_album()
+--     gen_album(msx.max_tunes)
+    gen_album(2)
+    msx.tunes[1]:setVolume(2)
     msx.tunes[1]:play()
 end
 
@@ -114,9 +116,9 @@ function plasma_draw()
   plasma.offset.y=math.cos(t*.12)*prod.height
 end
 
-function gen_album()
+function gen_album(tracks)
     math.randomseed(os.time())
-    for mel=1,msx.max_tunes do
+    for mel=1,tracks do
         msx.melody[mel] = {}
         for m=1,8 do
             table.insert(msx.melody[mel], msx.notes[math.random(#msx.notes)])
