@@ -17,15 +17,15 @@ local sine_text = {
 local t=0
 local freez_plasma=false
 local cam={
-  pos={0,0,-2.0},
+  pos={0,0,-1.8},
   spd=0.005,
   fov=250
 }
 local sun={
-  pos={-1,4,0},
-  exp=0.75
+  pos={0,4,-1},
+  exp=.4
 }
-local shift={x=400,y=180}
+local shift={x=600,y=280}
 
 ---------------------------------------
 -- ### LOAD ###
@@ -49,18 +49,18 @@ function love.draw()
   if freez_plasma then
     love.graphics.draw(plasmaImage,0,0)
   else
-    drawPlasma(720,480,5)
+    drawPlasma(1380,800,10)
   end
   local wx,wy = 25,25
-  drawRoundedRectangle(wx,wy,180,200,12,{.1,.1,1.0})
+  drawRoundedRectangle(wx,wy,180,200,12,{.1,.1,.1})
   drawWindowHeader("ENGINE LOG:",wx,wy,180)
   drawWindowText(engine_log,wx,wy)
 
   local w2x,w2y = 225,25
-  drawRoundedRectangle(w2x,w2y,480,440,12,{.2,.2,.2})
+  drawRoundedRectangle(w2x,w2y,800,600,12,{1,1,1,.5})
   dddRaster(meshes[1])
 
-  drawSineText(720,350,{1,1,1})
+  drawSineText(1280,700,{1,1,1})
 end
 
 ---------------------------------------
@@ -80,7 +80,10 @@ function love.update(dt)
     t=t+dt
   end
 
-  meshes[1]=dddRotMesh(meshes[1],"y",0.025)
+  rotateYMesh(meshes[1],math.sin(t)*0.1)
+  rotateZMesh(meshes[1],math.cos(t)*0.1)
+  rotateXMesh(meshes[1],math.sin(t+10)*0.1)
+
   dddSortZ(meshes[1])
 end
 
@@ -186,8 +189,10 @@ function renderPlasmaFrame(width, height)
 end
 
 function drawPlasma(width,height,pixel_scale)
-  local size=100
+
   local ratio=width/height
+  local size=ratio*150
+
 
   for x = 0, width,pixel_scale do
     for y = 0, height,pixel_scale do
@@ -264,13 +269,14 @@ function dddRaster(m)
 				w1_=w1_+b20
 				w2_=w2_+b01
 				c=dddShade(sl[1],sl[2],dot)
-				love.graphics.setColor(c,c,c)
+				love.graphics.setColor(c,.1,.25)
 				love.graphics.line(sl[1]+shift.x,sl[2]+shift.y,sl[3]+shift.x,sl[4]+shift.y)
 			end
-			love.graphics.setColor(1,1,1,0.1)
-			love.graphics.line(sp[1][1]+shift.x,sp[1][2]+shift.y,sp[2][1]+shift.x,sp[2][2]+shift.y)
-			love.graphics.line(sp[2][1]+shift.x,sp[2][2]+shift.y,sp[3][1]+shift.x,sp[3][2]+shift.y)
-			love.graphics.line(sp[3][1]+shift.x,sp[3][2]+shift.y,sp[1][1]+shift.x,sp[1][2]+shift.y)
+
+--love.graphics.setColor(1,1,1,.25)
+	--love.graphics.line(sp[1][1]+shift[1],sp[1][2]+shift[2],sp[2][1]+shift[1],sp[2][2]+shift[2])
+		--love.graphics.line(sp[2][1]+shift[1],sp[2][2]+shift[2],sp[3][1]+shift[1],sp[3][2]+shift[2])
+			--love.graphics.line(sp[3][1]+shift[1],sp[3][2]+shift[2],sp[1][1]+shift[1],sp[1][2]+shift[2])
 	 end
 	 _p=_p+1
 	end
@@ -356,51 +362,69 @@ function dddRotPoint(p,a,r)
   return {_x,_y,_z}
 end
 
+function dddTranslateMesh(mesh, tx, ty, tz)
+  for _, vertex in ipairs(mesh.vert) do
+    vertex[1] = vertex[1] + tx
+    vertex[2] = vertex[3] + ty
+    vertex[3] = vertex[3] + tz
+  end
+end
+
 function dddSortZ(mesh)
-  heapSortFaces3D(mesh.face,mesh.vert)
+  sortFaces3D(mesh.face,mesh.vert)
 end
 
 local function averageZ(face, vertices)
   local sumZ = 0
-
   for i = 1, #face do
     sumZ = sumZ + vertices[face[i]][3]
   end
-
   return sumZ / #face
 end
 
-local function maxHeapify(faces, i, heapSize, vertices)
-  local left = 2 * i
-  local right = 2 * i + 1
-  local largest = i
+local function compareFaces(face1, face2, vertices)
+  return averageZ(face1, vertices) < averageZ(face2, vertices)
+end
 
-  if left <= heapSize and averageZ(faces[left], vertices) > averageZ(faces[largest], vertices) then
-    largest = left
-  end
+function sortFaces3D(faces, vertices)
+  table.sort(faces, function(a, b) return compareFaces(b, a, vertices) end)
+end
 
-  if right <= heapSize and averageZ(faces[right], vertices) > averageZ(faces[largest], vertices) then
-    largest = right
-  end
+-- rotation function for a 3D mesh around the x-axis
+function rotateXMesh(mesh, angle)
+  local sinAngle = math.sin(angle)
+  local cosAngle = math.cos(angle)
 
-  if largest ~= i then
-    faces[i], faces[largest] = faces[largest], faces[i]
-    maxHeapify(faces, largest, heapSize, vertices)
+  for _, vertex in ipairs(mesh.vert) do
+    local y = vertex[2] * cosAngle - vertex[3] * sinAngle
+    local z = vertex[2] * sinAngle + vertex[3] * cosAngle
+    vertex[2] = y
+    vertex[3] = z
   end
 end
 
-function heapSortFaces3D(faces, vertices)
-  local heapSize = #faces
+-- rotation function for a 3D mesh around the y-axis
+function rotateYMesh(mesh, angle)
+  local sinAngle = math.sin(angle)
+  local cosAngle = math.cos(angle)
 
-  -- build the max heap
-  for i = math.floor(heapSize / 2), 1, -1 do
-    maxHeapify(faces, i, heapSize, vertices)
+  for _, vertex in ipairs(mesh.vert) do
+    local x = vertex[1] * cosAngle + vertex[3] * sinAngle
+    local z = -vertex[1] * sinAngle + vertex[3] * cosAngle
+    vertex[1] = x
+    vertex[3] = z
   end
+end
 
-  -- extract elements from the heap in sorted order
-  for i = heapSize, 2, -1 do
-    faces[1], faces[i] = faces[i], faces[1]
-    heapSize = heapSize - 1
-    maxHeapify(faces, 1, heapSize, vertices)
+-- rotation function for a 3D mesh around the z-axis
+function rotateZMesh(mesh, angle)
+  local sinAngle = math.sin(angle)
+  local cosAngle = math.cos(angle)
+
+  for _, vertex in ipairs(mesh.vert) do
+    local x = vertex[1] * cosAngle - vertex[2] * sinAngle
+    local y = vertex[1] * sinAngle + vertex[2] * cosAngle
+    vertex[1] = x
+    vertex[2] = y
   end
 end
