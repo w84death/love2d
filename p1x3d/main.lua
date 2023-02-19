@@ -17,14 +17,15 @@ local sine_text = {
 local t=0
 local freez_plasma=false
 local cam={
-  pos={0,1.2,-1},
+  pos={0,0,-2.0},
   spd=0.005,
-  fov=35
+  fov=250
 }
 local sun={
   pos={-1,4,0},
   exp=0.75
 }
+local shift={x=400,y=180}
 
 ---------------------------------------
 -- ### LOAD ###
@@ -33,10 +34,10 @@ local sun={
 function love.load()
   table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 18))
   table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 48))
-  local vert, face = parseObjFile("p1x-logo.obj")
+  local vert, face = parseObjFile("P1X_logo.obj")
   table.insert(meshes, {vert=vert, face=face})
-  sine_text.text = "Hi there! Love2D and Lua offer a powerful and flexible platform for making demos in the demoscene, with a combination of fast prototyping, cross-platform support, lightweight and fast performance, extensibility, and community support."
   dddSortZ(meshes[1])
+  sine_text.text = "Hi there! Love2D and Lua offer a powerful and flexible platform for making demos in the demoscene, with a combination of fast prototyping, cross-platform support, lightweight and fast performance, extensibility, and community support."
 end
 
 ---------------------------------------
@@ -48,7 +49,7 @@ function love.draw()
   if freez_plasma then
     love.graphics.draw(plasmaImage,0,0)
   else
-    drawPlasma(720,480,4)
+    drawPlasma(720,480,5)
   end
   local wx,wy = 25,25
   drawRoundedRectangle(wx,wy,180,200,12,{.1,.1,1.0})
@@ -78,6 +79,9 @@ function love.update(dt)
   if not freez_plasma then
     t=t+dt
   end
+
+  meshes[1]=dddRotMesh(meshes[1],"y",0.025)
+  dddSortZ(meshes[1])
 end
 
 
@@ -248,7 +252,7 @@ function dddRaster(m)
 					 end
 					 if scan then
 						 sl[3],sl[4]=x,y
-						end
+           end
 		   else
 					scan=false
 					end
@@ -259,20 +263,17 @@ function dddRaster(m)
 				w0_=w0_+b12
 				w1_=w1_+b20
 				w2_=w2_+b01
-				c,_c=ddShade(sl[1],sl[2],dot)
-				love.graphics.setColor(.5,.5,.5)
-				love.graphics.line(sl[1],sl[2],sl[3],sl[4])
+				c=dddShade(sl[1],sl[2],dot)
+				love.graphics.setColor(c,c,c)
+				love.graphics.line(sl[1]+shift.x,sl[2]+shift.y,sl[3]+shift.x,sl[4]+shift.y)
 			end
-			love.graphics.setColor(1,1,1)
-			love.graphics.line(sp[1][1],sp[1][2],sp[2][1],sp[2][2])
-			love.graphics.line(sp[2][1],sp[2][2],sp[3][1],sp[3][2])
-			love.graphics.line(sp[3][1],sp[3][2],sp[1][1],sp[1][2])
+			love.graphics.setColor(1,1,1,0.1)
+			love.graphics.line(sp[1][1]+shift.x,sp[1][2]+shift.y,sp[2][1]+shift.x,sp[2][2]+shift.y)
+			love.graphics.line(sp[2][1]+shift.x,sp[2][2]+shift.y,sp[3][1]+shift.x,sp[3][2]+shift.y)
+			love.graphics.line(sp[3][1]+shift.x,sp[3][2]+shift.y,sp[1][1]+shift.x,sp[1][2]+shift.y)
 	 end
 	 _p=_p+1
 	end
-end
-
-function dddSortZ(mesh)
 end
 
 function dddProject(p)
@@ -283,12 +284,9 @@ function dddProject(p)
     -(p[2]-cp[2])*f/(p[3]-cp[3])+63.5}
 end
 
-function ddShade(x,y,dot)
-	local luma=4+math.min(dot*sun.exp,4)
-	local c=1+math.floor(luma)
--- 	return min(c+min(x%2&y%2,1),8),c
-  c=1
-  return c,c
+function dddShade(x,y,dot)
+	local luma=dot*sun.exp
+  return luma
 end
 
 function dddDotProd(a,b)
@@ -329,4 +327,80 @@ function dddCrossProd(v1,v2)
     v1[3]*v2[1]-v1[1]*v2[3],
     v1[1]*v2[2]-v1[2]*v2[1]
   }
+end
+
+function dddRotMesh(m,a,r)
+  local _m = {vert={},face=m.face}
+  for i,v in pairs(m.vert) do
+      table.insert(_m.vert,dddRotPoint(v,a,r))
+  end
+  return _m
+end
+
+function dddRotPoint(p,a,r)
+  if a=="x" then
+    _x=p[1]
+    _y=math.cos(r)*p[2]-math.sin(r)*p[3]
+    _z=math.sin(r)*p[2]+math.cos(r)*p[3]
+  end
+  if a=="y" then
+    _x=math.sin(r)*p[3]+math.cos(r)*p[1]
+    _y=p[2]
+    _z=math.cos(r)*p[3]-math.sin(r)*p[1]
+  end
+  if a=="z" then
+    _x=math.cos(r)*p[1]-math.sin(r)*p[2]
+    _y=math.sin(r)*p[1]+math.cos(r)*p[2]
+    _z=p[3]
+  end
+  return {_x,_y,_z}
+end
+
+function dddSortZ(mesh)
+  heapSortFaces3D(mesh.face,mesh.vert)
+end
+
+local function averageZ(face, vertices)
+  local sumZ = 0
+
+  for i = 1, #face do
+    sumZ = sumZ + vertices[face[i]][3]
+  end
+
+  return sumZ / #face
+end
+
+local function maxHeapify(faces, i, heapSize, vertices)
+  local left = 2 * i
+  local right = 2 * i + 1
+  local largest = i
+
+  if left <= heapSize and averageZ(faces[left], vertices) > averageZ(faces[largest], vertices) then
+    largest = left
+  end
+
+  if right <= heapSize and averageZ(faces[right], vertices) > averageZ(faces[largest], vertices) then
+    largest = right
+  end
+
+  if largest ~= i then
+    faces[i], faces[largest] = faces[largest], faces[i]
+    maxHeapify(faces, largest, heapSize, vertices)
+  end
+end
+
+function heapSortFaces3D(faces, vertices)
+  local heapSize = #faces
+
+  -- build the max heap
+  for i = math.floor(heapSize / 2), 1, -1 do
+    maxHeapify(faces, i, heapSize, vertices)
+  end
+
+  -- extract elements from the heap in sorted order
+  for i = heapSize, 2, -1 do
+    faces[1], faces[i] = faces[i], faces[1]
+    heapSize = heapSize - 1
+    maxHeapify(faces, 1, heapSize, vertices)
+  end
 end
