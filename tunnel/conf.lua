@@ -1,5 +1,5 @@
 function love.conf(t)
-    t.window.title = "P1X Tunne;"
+    t.window.title = "P1X Tunnel + Scroll Text"
     t.window.width = 1280
     t.window.height = 800
     t.window.fullscreen= false

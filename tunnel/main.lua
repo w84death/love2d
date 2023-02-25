@@ -1,15 +1,17 @@
 function love.load()
-
+   music = love.audio.newSource("antytol.it", "stream")
   font=love.graphics.newFont("FutilePro.ttf", 70)
+  font_small=love.graphics.newFont("FutilePro.ttf", 14)
+  width, height = love.window.getMode()
   tunnel={
     px=0,
     py=0,
-    maxx=640,
-    maxy=100,
-    shifter=4,
-    speed=2,
-    pixel_scale=4,
-    fov=150
+    maxx=600,
+    maxy=220,
+    shifter=1.5,
+    speed=3.33,
+    pixel_scale=18,
+    fov=125
   }
   sine_text = {
     offset = 0,
@@ -29,44 +31,89 @@ function love.load()
 end
 
 function love.update(dt)
-  tunnel.px = math.sin(t)*1
-  tunnel.py = math.sin(t*3)*3
   updateSineText(dt)
   t=t+dt
+  if not music:isPlaying() then
+      music:play()
+  end
  end
 
 function love.draw()
-  for y=-tunnel.maxy+tunnel.py,tunnel.maxy+tunnel.py,tunnel.pixel_scale+2 do
-    for x=-tunnel.maxx+tunnel.px,tunnel.maxx+tunnel.px,tunnel.pixel_scale do
-      a=math.atan2(y,x)
-      m=tunnel.fov
-      d=m/math.sqrt(x*x+y*y)
-      c=(a+d+t*tunnel.speed)%1
-      love.graphics.setPointSize(tunnel.pixel_scale)
-      love.graphics.setColor(c,.8,.8,.4)
-      love.graphics.points(640+x,400+y-tunnel.shifter)
-      love.graphics.setColor(.8,c*.8,.8,.8)
-      love.graphics.points(640+x,400+y)
-      love.graphics.setColor(8,.8,c,.4)
-      love.graphics.points(640+x,400+y+tunnel.shifter)
-    end
-  end
+  drawTunnel()
   drawFuzzyText(20,360)
   drawFuzzyText(20+1280,360)
+  drawCopyrights(30,height-25)
+
+  drawStats(width-30,height-25)
+end
+
+function drawTunnel()
+  for y=-tunnel.maxy,tunnel.maxy,tunnel.pixel_scale*.5 do
+    for x=-tunnel.maxx,tunnel.maxx,tunnel.pixel_scale do
+      local xx=x+math.sin(t*1.2)*400
+      local yy=y+math.sin(t*1.3)*200
+      local a=math.atan2(xx,yy)
+      local m=tunnel.fov
+      local d=m/math.sqrt(xx*xx*.05+yy*yy)
+      local c=(a+d+t*tunnel.speed)%1
+
+      local ts=0
+      if y%2==0 then
+        ts=tunnel.pixel_scale*.5
+      end
+      local dist=(1.5-d^.25)
+
+--       local dist2=(1.5-d^.75)
+--       love.graphics.setColor(math.max(0,math.sin(t))*.75,c*.2,.8,math.max(0,(1+math.sin(t*5)*.25)*dist))
+--       love.graphics.circle("fill",640+x+ts,400+y-tunnel.shifter, 6, 12)
+--       love.graphics.setColor(1,1,1,math.max(0,dist*.25))
+--       love.graphics.circle("fill",640+x+ts-3,400+y+tunnel.shifter-4, 10, 12)
+--       love.graphics.setColor(c*math.abs(math.sin(t)),c*.2,c*math.abs(math.sin(t))*.75,math.max(0,(1+math.cos(t*7)*.25)*dist))
+--       love.graphics.circle("fill",640+x+ts,400+y+tunnel.shifter, 10, 12)
+
+      local alpha=math.max(0,(1+math.cos(t*7)*.25)*dist)
+      local color=c*math.abs(math.sin(t))
+      love.graphics.setColor(color,color*.2,c*.75, alpha)
+      love.graphics.circle("fill",640+x+ts,400+y, 14, 12)
+
+      if y%4==0 then
+        ts=0
+        if y%8==0 then
+          ts=tunnel.pixel_scale*.5
+        end
+       love.graphics.setColor(c*.1,c*.2,c*.3, dist)
+       love.graphics.circle("fill",640+x+ts,700-y*.5/2+math.sin(x+y+t*4)*4,14,6)
+       love.graphics.setColor(c*.4,c*.3,c*.1, dist)
+       love.graphics.circle("fill",640+x+ts,90-y*.5/2+math.sin(x+y+t*4)*4,14,6)
+      end
+    end
+  end
 end
 
 function drawFuzzyText(x,y)
   for i = 1, #sine_text.text do
     local x_pos=x+sine_text.x+ i * sine_text.x_scale
     local y_pos=y+sine_text.y+ math.sin(sine_text.offset + i * -sine_text.pack) * sine_text.y_scale
+    local y_pos2=y+sine_text.y+ math.sin(sine_text.offset + i * -sine_text.pack) * sine_text.y_scale*.25
     letter=string.sub(sine_text.text, i,i)
     love.graphics.setFont(font)
+
+    love.graphics.setColor(.1,.1,.1,0.6)
+    love.graphics.print(letter,x_pos+12,y_pos+2)
+
     love.graphics.setColor(1,1,1,1)
     love.graphics.print(letter,x_pos+sine_text.sx*.5,y_pos+sine_text.sy*.5)
     love.graphics.setColor(math.abs(1-sine_text.sx*.75),.8,math.abs(sine_text.sx*.5),0.8)
     love.graphics.print(letter,x_pos+4,y_pos+1)
     love.graphics.setColor(.1,.1,.25,0.4)
     love.graphics.print(letter,x_pos+1+sine_text.sx,y_pos+4+sine_text.sy)
+
+    love.graphics.setColor(1,1,1,0.3)
+    love.graphics.print(letter,x_pos-8,y_pos-2)
+
+--     love.graphics.setColor(.2,.4,.4,0.1)
+--     love.graphics.circle("fill",x_pos-8,y_pos2+320, 14, 12)
+--     love.graphics.circle("fill",x_pos+8,y_pos2+320, 14, 12)
   end
 end
 
@@ -78,6 +125,19 @@ function updateSineText(dt)
     sine_text.x = 0
   end
   sine_text.offset = sine_text.offset + dt*sine_text.sine_speed
+end
+
+function drawCopyrights(x,y)
+  love.graphics.setFont(font_small)
+  love.graphics.setColor(1,1,1)
+  love.graphics.print("CODE: w84death^P1X",x,y-10)
+  love.graphics.print("MUSIC: antytol by YeKM19",x,y)
+end
+
+function drawStats(x,y)
+  love.graphics.setFont(font_small)
+  love.graphics.setColor(1,1,1)
+  love.graphics.print("STATS: "..love.timer.getFPS().."FPS / "..math.floor(collectgarbage('count')).."KB",x-160,y)
 end
 
 function love.keypressed(key)
