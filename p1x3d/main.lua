@@ -1,5 +1,10 @@
 require "parse_obj"
-
+sin=math.sin
+pow=math.pow
+flr=math.floor
+max=math.max
+min=math.min
+abs=math.abs
 local meshes = {}
 local app_fonts = {}
 local engine_log = ""
@@ -14,6 +19,7 @@ local sine_text = {
   y_scale = 60,
   text = "SiNeTeXt"
 }
+
 local t=0
 local freez_plasma=false
 local cam={
@@ -38,6 +44,9 @@ function love.load()
   table.insert(meshes, {vert=vert, face=face})
   dddSortZ(meshes[1])
   sine_text.text = "Hi there! Love2D and Lua offer a powerful and flexible platform for making demos in the demoscene, with a combination of fast prototyping, cross-platform support, lightweight and fast performance, extensibility, and community support."
+  audioSource = love.audio.newSource(genMusic({ 0, 2, 4, 7, 9, 11, 12, 11, 9, 7, 4, 2 }), 44100, 16, 1)
+  audioSource:play()
+
 end
 
 ---------------------------------------
@@ -52,12 +61,10 @@ function love.draw()
     drawPlasma(1380,800,10)
   end
   local wx,wy = 25,25
-  drawRoundedRectangle(wx,wy,180,200,12,{.1,.1,.1})
+  drawRoundedRectangle(wx,wy,190,160,12,{.1,.1,.1})
   drawWindowHeader("ENGINE LOG:",wx,wy,180)
   drawWindowText(engine_log,wx,wy)
 
-  local w2x,w2y = 225,25
-  drawRoundedRectangle(w2x,w2y,800,600,12,{1,1,1,.5})
   dddRaster(meshes[1])
 
   drawSineText(1280,700,{1,1,1})
@@ -97,7 +104,7 @@ function love.keypressed(key)
     love.event.quit()
   end
   if key == "r" then
-      plasmaImage = renderPlasmaFrame(720,480)
+      plasmaImage = renderPlasmaFrame(1280,800)
       freez_plasma = not freez_plasma
   end
 end
@@ -169,8 +176,8 @@ end
 
 function renderPlasmaFrame(width, height)
   local imageData = love.image.newImageData(width, height)
-  local size=100
   local ratio=width/height
+  local size=ratio*150
   for x = 0, width-1 do
     for y = 0, height-1 do
       local xx=x
@@ -210,6 +217,49 @@ function drawPlasma(width,height,pixel_scale)
     end
   end
 end
+
+
+
+
+
+---------------------------------------
+-- ### TUNES ###
+--
+
+function genMusic(melody)
+  local rate = 44100
+  local length = 30
+  local tempo = 128 -- beats per minute
+  local beatDuration = 60 / tempo
+  local speed = 5
+  local tone = 400
+  local soundData=love.sound.newSoundData(flr(length*rate),rate,16,1)
+  local accu=0
+  local tt=0
+
+
+  for ss=0,soundData:getSampleCount()-1 do
+      local u=tt/rate
+      for j=1,2 do
+          for i=1,4 do
+              local r=u*j/6
+              local v=r%1
+              local e=2^(-(9*v*i+.01/v))
+              local f=tone*melody[1+flr(r%#melody)]
+              local o=sin(f*i*u*j/4)
+              accu=accu+sin(i)*e*o
+          end
+
+      end
+      tt=tt+speed
+      soundData:setSample(ss,math.min(math.max(-1, accu), 1))
+  end
+  return soundData
+end
+
+
+
+
 
 ---------------------------------------
 -- ### 3D ENGINE ###
@@ -428,3 +478,6 @@ function rotateZMesh(mesh, angle)
     vertex[2] = y
   end
 end
+
+
+

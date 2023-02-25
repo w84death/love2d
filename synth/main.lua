@@ -22,7 +22,7 @@ msx={
     chord={6,6,8,9},
     now_playing = 1,
     melody={},
-    notes={0,0,10/3,12/3,15/3,10,15,12},
+    notes={0, 2, 4, 5, 7, 9, 11, 12 },
     tunes={},
     max_tunes=7,
     fft={}
@@ -119,10 +119,11 @@ end
 function gen_album(tracks)
     math.randomseed(os.time())
     for mel=1,tracks do
-        msx.melody[mel] = {}
-        for m=1,8 do
-            table.insert(msx.melody[mel], msx.notes[math.random(#msx.notes)])
-        end
+        msx.melody[mel] = { 0, 2, 4, 2, 0, 0, 0, 2, 2, 2, 0, 4, 4, 0, 2, 4, 2, 0, 0, 0, 0, 2, 4, 4, 2, 2, 0 }
+--         msx.melody[mel] = {}
+--         for m=1,8 do
+--             table.insert(msx.melody[mel], msx.notes[math.random(#msx.notes)])
+--         end
 
         table.insert(msx.fft,gen_music(mel))
         table.insert(msx.tunes,love.audio.newSource(gen_music(mel)))
@@ -140,7 +141,7 @@ function gen_music(track)
                 local r=u*j/2
                 local v=r%1
                 local e=2^(-(3*v*i+.01/v))
-                local f=msx.tone*msx.melody[track][1+flr(r%7)]*msx.chord[1+flr(u%3)]
+                local f=msx.tone*msx.melody[track][1+flr(r%#msx.melody[track])]*msx.chord[1+flr(u%3)]
                 local o=sin(f*i*u*j/4)
                 accu=accu+sin(i)*e*o*.0025
             end
