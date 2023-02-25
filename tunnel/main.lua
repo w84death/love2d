@@ -49,9 +49,9 @@ function love.draw()
   drawStats(width-30,height-25)
 end
 
-function drawTunnelNew()
-  for y=0,tunnel.height,tunnel.pixel_scale*.25 do
-    for x=0,tunnel.width,tunnel.pixel_scale*.5 do
+function drawTunnelX()
+  for y=0,tunnel.height do
+    for x=0,tunnel.width do
       --local xx=x+math.sin(t*1.2)*400
       --local yy=y+math.sin(t*1.3)*200
       local fx=x-tunnel.width*.5
@@ -60,9 +60,9 @@ function drawTunnelNew()
       local distance = 500.0/radius
       local u = math.abs((distance+t*10)%2)
       local v = math.atan2(fx,fy)*(512/math.pi/2)*t
-      local color = (u^v)*distance%1
+      local color = (u^v)
       love.graphics.setColor(color,color,color)
-      love.graphics.circle("fill",width*.5-fx,height*.5-fy, 14, 12)
+      love.graphics.circle("fill",width*.5-fx,height*.5-fy, 2, 4)
     end
   end
 end

@@ -5,25 +5,13 @@ flr=math.floor
 max=math.max
 min=math.min
 abs=math.abs
+
 local meshes = {}
 local app_fonts = {}
 local engine_log = ""
-local sine_text = {
-  offset = 0,
-  x = 0,
-  y = 0,
-  speed = 100,
-  min_x = 0,
-  max_x = 200,
-  x_scale = 28,
-  y_scale = 60,
-  text = "SiNeTeXt"
-}
-
 local t=0
-local freez_plasma=false
 local cam={
-  pos={0,0,-1.8},
+  pos={0,0,-1},
   spd=0.005,
   fov=250
 }
@@ -39,14 +27,9 @@ local shift={x=600,y=280}
 
 function love.load()
   table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 18))
-  table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 48))
   local vert, face = parseObjFile("P1X_logo.obj")
   table.insert(meshes, {vert=vert, face=face})
   dddSortZ(meshes[1])
-  sine_text.text = "Hi there! Love2D and Lua offer a powerful and flexible platform for making demos in the demoscene, with a combination of fast prototyping, cross-platform support, lightweight and fast performance, extensibility, and community support."
-  audioSource = love.audio.newSource(genMusic({ 0, 2, 4, 7, 9, 11, 12, 11, 9, 7, 4, 2 }), 44100, 16, 1)
-  audioSource:play()
-
 end
 
 ---------------------------------------
@@ -55,19 +38,12 @@ end
 
 function love.draw()
   love.graphics.setFont(app_fonts[1])
-  if freez_plasma then
-    love.graphics.draw(plasmaImage,0,0)
-  else
-    drawPlasma(1380,800,10)
-  end
   local wx,wy = 25,25
   drawRoundedRectangle(wx,wy,190,160,12,{.1,.1,.1})
   drawWindowHeader("ENGINE LOG:",wx,wy,180)
   drawWindowText(engine_log,wx,wy)
 
   dddRaster(meshes[1])
-
-  drawSineText(1280,700,{1,1,1})
 end
 
 ---------------------------------------
@@ -82,14 +58,9 @@ function love.update(dt)
   "FPS="..love.timer.getFPS()..
   "\nMEM="..math.floor(collectgarbage('count')).."KB"
 
-  updateSineText(dt)
-  if not freez_plasma then
-    t=t+dt
-  end
-
-  rotateYMesh(meshes[1],math.sin(t)*0.1)
-  rotateZMesh(meshes[1],math.cos(t)*0.1)
-  rotateXMesh(meshes[1],math.sin(t+10)*0.1)
+--   rotateYMesh(meshes[1],math.sin(t)*0.1)
+ rotateZMesh(meshes[1],math.cos(t)*0.02)
+ rotateXMesh(meshes[1],math.sin(t+10)*0.01)
 
   dddSortZ(meshes[1])
 end
@@ -148,117 +119,6 @@ function drawRoundedRectangle(x, y, w, h, radius, color)
   love.graphics.circle(mode, x+w-radius, y+h-radius, radius)
 end
 
----------------------------------------
--- ### SINE TEXT ###
---
-
-function drawSineText(x, y, color)
-  love.graphics.setFont(app_fonts[2])
-
-  for i = 1, #sine_text.text do
-    local x_pos = x+sine_text.x + i * sine_text.x_scale
-    local y_pos = y+sine_text.y + math.sin(sine_text.offset + i * -0.1) * sine_text.y_scale
-    drawShadowedText(string.sub(sine_text.text, i,i),x_pos,y_pos,{4,4})
-  end
-end
-
-function updateSineText(dt)
-  sine_text.x = sine_text.x - sine_text.speed*dt
-  if sine_text.x < sine_text.min_x - #sine_text.text*sine_text.x_scale then
-    sine_text.x = sine_text.max_x
-  end
-  sine_text.offset = sine_text.offset + 0.05
-end
-
----------------------------------------
--- ### PLASMA ###
---
-
-function renderPlasmaFrame(width, height)
-  local imageData = love.image.newImageData(width, height)
-  local ratio=width/height
-  local size=ratio*150
-  for x = 0, width-1 do
-    for y = 0, height-1 do
-      local xx=x
-      local yy=y
-      local v=math.sin((xx*ratio)/size+t)+math.sin((yy*ratio)/size+t)+math.sin((xx+yy)/size*4.0)
-      local c=(v*2)
-      local tc=t*.05
-      local r=math.max(0.2,math.min(c*math.sin(3+c*.025-tc),1.0))
-      local g=math.max(0.2,math.min(c*math.cos(2+c*.05),.5))
-      local b=math.max(0.2,math.min(c*math.sin(3+c*.05+tc),.75))
-       imageData:setPixel(x, y, r, g, b, 255)
-    end
-  end
-
-  return love.graphics.newImage(imageData)
-end
-
-function drawPlasma(width,height,pixel_scale)
-
-  local ratio=width/height
-  local size=ratio*150
-
-
-  for x = 0, width,pixel_scale do
-    for y = 0, height,pixel_scale do
-      local xx=x
-      local yy=y
-      local v=math.sin((xx*ratio)/size+t)+math.sin((yy*ratio)/size+t)+math.sin((xx+yy)/size*4.0)
-      local c=(v*2)
-      local tc=t*.05
-      local r=math.max(0.2,math.min(c*math.sin(3+c*.025-tc),1.0))
-      local g=math.max(0.2,math.min(c*math.cos(2+c*.05),.5))
-      local b=math.max(0.2,math.min(c*math.sin(3+c*.05+tc),.75))
-      love.graphics.setColor(r,g,b)
-      love.graphics.setPointSize(pixel_scale)
-      love.graphics.points(x,y)
-    end
-  end
-end
-
-
-
-
-
----------------------------------------
--- ### TUNES ###
---
-
-function genMusic(melody)
-  local rate = 44100
-  local length = 30
-  local tempo = 128 -- beats per minute
-  local beatDuration = 60 / tempo
-  local speed = 5
-  local tone = 400
-  local soundData=love.sound.newSoundData(flr(length*rate),rate,16,1)
-  local accu=0
-  local tt=0
-
-
-  for ss=0,soundData:getSampleCount()-1 do
-      local u=tt/rate
-      for j=1,2 do
-          for i=1,4 do
-              local r=u*j/6
-              local v=r%1
-              local e=2^(-(9*v*i+.01/v))
-              local f=tone*melody[1+flr(r%#melody)]
-              local o=sin(f*i*u*j/4)
-              accu=accu+sin(i)*e*o
-          end
-
-      end
-      tt=tt+speed
-      soundData:setSample(ss,math.min(math.max(-1, accu), 1))
-  end
-  return soundData
-end
-
-
-
 
 
 ---------------------------------------
@@ -266,6 +126,36 @@ end
 --
 
 function dddRaster(m)
+  _p=1
+  for i,f in pairs(m.face) do
+    local p={m.vert[f[1]],m.vert[f[2]],m.vert[f[3]]}
+
+    local n=dddNormal(p[1],p[2],p[3])
+    if
+      (n[1]*(p[1][1]-cam.pos[1]))+
+      (n[2]*(p[1][2]-cam.pos[2]))+
+      (n[3]*(p[1][3]-cam.pos[3]))<0
+    then
+      local sp={
+        dddProject(p[1]),
+        dddProject(p[2]),
+        dddProject(p[3])}
+--       love.graphics.setColor(1,1,1,1)
+--       love.graphics.line(sp[1][1]+shift.x,sp[1][2]+shift.y,sp[2][1]+shift.x,sp[2][2]+shift.y)
+--       love.graphics.line(sp[2][1]+shift.x,sp[2][2]+shift.y,sp[3][1]+shift.x,sp[3][2]+shift.y)
+--       love.graphics.line(sp[3][1]+shift.x,sp[3][2]+shift.y,sp[1][1]+shift.x,sp[1][2]+shift.y)
+      local dot=dddDotProd(n,sun.pos)*sun.exp
+      local c=dddShade(sp[1],sp[2],dot)
+      love.graphics.setColor(c,c,c,1)
+      mesh = love.graphics.newMesh(sp, "fan")
+--       mesh:setTexture(image)
+      love.graphics.draw(mesh, shift.x, shift.y)
+    end
+	 end
+	 _p=_p+1
+end
+
+function dddRasterOld(m)
   _p=1
   for i,f in pairs(m.face) do
     local p={m.vert[f[1]],m.vert[f[2]],m.vert[f[3]]}
@@ -323,10 +213,10 @@ function dddRaster(m)
 				love.graphics.line(sl[1]+shift.x,sl[2]+shift.y,sl[3]+shift.x,sl[4]+shift.y)
 			end
 
---love.graphics.setColor(1,1,1,.25)
-	--love.graphics.line(sp[1][1]+shift[1],sp[1][2]+shift[2],sp[2][1]+shift[1],sp[2][2]+shift[2])
-		--love.graphics.line(sp[2][1]+shift[1],sp[2][2]+shift[2],sp[3][1]+shift[1],sp[3][2]+shift[2])
-			--love.graphics.line(sp[3][1]+shift[1],sp[3][2]+shift[2],sp[1][1]+shift[1],sp[1][2]+shift[2])
+--       love.graphics.setColor(1,1,1,.25)
+--       love.graphics.line(sp[1][1]+shift[1],sp[1][2]+shift[2],sp[2][1]+shift[1],sp[2][2]+shift[2])
+--       love.graphics.line(sp[2][1]+shift[1],sp[2][2]+shift[2],sp[3][1]+shift[1],sp[3][2]+shift[2])
+--       love.graphics.line(sp[3][1]+shift[1],sp[3][2]+shift[2],sp[1][1]+shift[1],sp[1][2]+shift[2])
 	 end
 	 _p=_p+1
 	end
