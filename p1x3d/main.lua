@@ -1,35 +1,36 @@
 require "parse_obj"
-sin=math.sin
-pow=math.pow
-flr=math.floor
-max=math.max
-min=math.min
-abs=math.abs
+
 
 local meshes = {}
 local app_fonts = {}
 local engine_log = ""
 local t=0
 local cam={
-  pos={0,0,-1},
+  pos={0,0,-1.4},
   spd=0.005,
-  fov=250
+  fov=300
 }
 local sun={
-  pos={0,4,-1},
-  exp=.4
+  pos={-2,2,-3},
+  exp=.6
 }
 local shift={x=600,y=280}
+local act_mesh=1
 
 ---------------------------------------
 -- ### LOAD ###
 --
 
 function love.load()
+  music = love.audio.newSource("interphace_-_escapade.mod", "stream")
   table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 18))
   local vert, face = parseObjFile("P1X_logo.obj")
   table.insert(meshes, {vert=vert, face=face})
-  dddSortZ(meshes[1])
+  local vert, face = parseObjFile("suzane.obj")
+  table.insert(meshes, {vert=vert, face=face})
+  local vert, face = parseObjFile("bolt.obj")
+  table.insert(meshes, {vert=vert, face=face})
+  dddSortZ(meshes[act_mesh])
 end
 
 ---------------------------------------
@@ -42,8 +43,7 @@ function love.draw()
   drawRoundedRectangle(wx,wy,190,160,12,{.1,.1,.1})
   drawWindowHeader("ENGINE LOG:",wx,wy,180)
   drawWindowText(engine_log,wx,wy)
-
-  dddRaster(meshes[1])
+  dddRaster(meshes[act_mesh])
 end
 
 ---------------------------------------
@@ -51,32 +51,49 @@ end
 --
 
 function love.update(dt)
-  engine_log = "LOADED P1X LOGO\n"..
-  "VERT="..#meshes[1].vert..
-  "\nFACE="..#meshes[1].face..
-  "\n...\n"..
-  "FPS="..love.timer.getFPS()..
-  "\nMEM="..math.floor(collectgarbage('count')).."KB"
+  engine_log = "MUSIC: Escapade\nby Interphace\n"..
+  "VERT="..#meshes[act_mesh].vert..
+  "\nFACE="..#meshes[act_mesh].face..
+  "\nMEM="..math.floor(collectgarbage('count')).."KB\n"..
+  "FPS="..love.timer.getFPS()
+  if not music:isPlaying() then
+      music:play()
+  end
 
---   rotateYMesh(meshes[1],math.sin(t)*0.1)
- rotateZMesh(meshes[1],math.cos(t)*0.02)
- rotateXMesh(meshes[1],math.sin(t+10)*0.01)
+  dddSortZ(meshes[act_mesh])
 
-  dddSortZ(meshes[1])
+  keyboard()
 end
 
 
 ---------------------------------------
 -- ### EVENTS ###
 --
-
 function love.keypressed(key)
   if key == "escape" then
     love.event.quit()
   end
-  if key == "r" then
-      plasmaImage = renderPlasmaFrame(1280,800)
-      freez_plasma = not freez_plasma
+  if key == "return" then
+      if act_mesh<#meshes then
+        act_mesh=act_mesh+1
+      else
+        act_mesh=1
+      end
+  end
+end
+
+function keyboard()
+  if love.keyboard.isDown("left") then
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",0.03)
+  end
+  if love.keyboard.isDown("right") then
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",-0.03)
+  end
+  if love.keyboard.isDown("up") then
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"x",0.03)
+  end
+  if love.keyboard.isDown("down") then
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"x",-0.03)
   end
 end
 
@@ -140,86 +157,15 @@ function dddRaster(m)
         dddProject(p[1]),
         dddProject(p[2]),
         dddProject(p[3])}
---       love.graphics.setColor(1,1,1,1)
---       love.graphics.line(sp[1][1]+shift.x,sp[1][2]+shift.y,sp[2][1]+shift.x,sp[2][2]+shift.y)
---       love.graphics.line(sp[2][1]+shift.x,sp[2][2]+shift.y,sp[3][1]+shift.x,sp[3][2]+shift.y)
---       love.graphics.line(sp[3][1]+shift.x,sp[3][2]+shift.y,sp[1][1]+shift.x,sp[1][2]+shift.y)
+
       local dot=dddDotProd(n,sun.pos)*sun.exp
-      local c=dddShade(sp[1],sp[2],dot)
-      love.graphics.setColor(c,c,c,1)
+      local c=dddShade(p[1],p[2],dot)
+      love.graphics.setColor(c,c,c)
       mesh = love.graphics.newMesh(sp, "fan")
---       mesh:setTexture(image)
       love.graphics.draw(mesh, shift.x, shift.y)
     end
 	 end
 	 _p=_p+1
-end
-
-function dddRasterOld(m)
-  _p=1
-  for i,f in pairs(m.face) do
-    local p={m.vert[f[1]],m.vert[f[2]],m.vert[f[3]]}
-
-    local n=dddNormal(p[1],p[2],p[3])
-    if
-			(n[1]*(p[1][1]-cam.pos[1]))+
-			(n[2]*(p[1][2]-cam.pos[2]))+
-			(n[3]*(p[1][3]-cam.pos[3]))<0
-		then
-			local dot=dddDotProd(n,sun.pos)*sun.exp
-
-			local sp={
-				dddProject(p[1]),
-				dddProject(p[2]),
-				dddProject(p[3])}
-			local min_x,max_x,min_y,max_y = dddGetBounds(sp)
-
-			local a01=sp[1][2]-sp[2][2]
-			local a12=sp[2][2]-sp[3][2]
-			local a20=sp[3][2]-sp[1][2]
-			local b01=sp[2][1]-sp[1][1]
-      local b12=sp[3][1]-sp[2][1]
-			local b20=sp[1][1]-sp[3][1]
-
-			local w0_=dddO2d(sp[2],sp[3],{min_x,min_y})
-			local w1_=dddO2d(sp[3],sp[1],{min_x,min_y})
-			local w2_=dddO2d(sp[1],sp[2],{min_x,min_y})
-			local c=0
-			local scan=false
-			local sl={0,0,0,0}
-			for y=min_y,max_y do
-				w0,w1,w2=w0_,w1_,w2_
-				for x=min_x,max_x do
-					if bit.bor(bit.bor(w0,w1),w2)>0 then
-					 if not scan then
-					  scan = true
-					  sl[1],sl[2]=x,y
-					 end
-					 if scan then
-						 sl[3],sl[4]=x,y
-           end
-		   else
-					scan=false
-					end
-					w0=w0+a12
-					w1=w1+a20
-					w2=w2+a01
-				end
-				w0_=w0_+b12
-				w1_=w1_+b20
-				w2_=w2_+b01
-				c=dddShade(sl[1],sl[2],dot)
-				love.graphics.setColor(c,.1,.25)
-				love.graphics.line(sl[1]+shift.x,sl[2]+shift.y,sl[3]+shift.x,sl[4]+shift.y)
-			end
-
---       love.graphics.setColor(1,1,1,.25)
---       love.graphics.line(sp[1][1]+shift[1],sp[1][2]+shift[2],sp[2][1]+shift[1],sp[2][2]+shift[2])
---       love.graphics.line(sp[2][1]+shift[1],sp[2][2]+shift[2],sp[3][1]+shift[1],sp[3][2]+shift[2])
---       love.graphics.line(sp[3][1]+shift[1],sp[3][2]+shift[2],sp[1][1]+shift[1],sp[1][2]+shift[2])
-	 end
-	 _p=_p+1
-	end
 end
 
 function dddProject(p)
@@ -252,15 +198,6 @@ function dddNormal(p1,p2,p3)
   })
   local l=math.sqrt(n[1]*n[1]+n[2]*n[2]+n[3]*n[3])
   return {n[1]/l,n[2]/l,n[3]/l}
-end
-
-function dddGetBounds(p)
-  local min_x=math.min(p[1][1],math.min(p[2][1],p[3][1]))
-  local min_y=math.min(p[1][2],math.min(p[2][2],p[3][2]))
-  local max_x=math.max(p[1][1],math.max(p[2][1],p[3][1]))
-  local max_y=math.max(p[1][2],math.max(p[2][2],p[3][2]))
-
-  return min_x,max_x,min_y,max_y
 end
 
 function dddO2d(a,b,c)
@@ -330,7 +267,7 @@ function sortFaces3D(faces, vertices)
   table.sort(faces, function(a, b) return compareFaces(b, a, vertices) end)
 end
 
--- rotation function for a 3D mesh around the x-axis
+
 function rotateXMesh(mesh, angle)
   local sinAngle = math.sin(angle)
   local cosAngle = math.cos(angle)
@@ -343,7 +280,6 @@ function rotateXMesh(mesh, angle)
   end
 end
 
--- rotation function for a 3D mesh around the y-axis
 function rotateYMesh(mesh, angle)
   local sinAngle = math.sin(angle)
   local cosAngle = math.cos(angle)
@@ -356,7 +292,6 @@ function rotateYMesh(mesh, angle)
   end
 end
 
--- rotation function for a 3D mesh around the z-axis
 function rotateZMesh(mesh, angle)
   local sinAngle = math.sin(angle)
   local cosAngle = math.cos(angle)
