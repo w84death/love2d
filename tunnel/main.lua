@@ -8,6 +8,8 @@ function love.load()
     py=0,
     maxx=600,
     maxy=220,
+    width=1200,
+    height=440,
     shifter=1.5,
     speed=3.33,
     pixel_scale=18,
@@ -47,6 +49,24 @@ function love.draw()
   drawStats(width-30,height-25)
 end
 
+function drawTunnelNew()
+  for y=0,tunnel.height,tunnel.pixel_scale*.25 do
+    for x=0,tunnel.width,tunnel.pixel_scale*.5 do
+      --local xx=x+math.sin(t*1.2)*400
+      --local yy=y+math.sin(t*1.3)*200
+      local fx=x-tunnel.width*.5
+      local fy=y-tunnel.height*.5
+      local radius = math.sqrt(fx*fx+fy*fy)
+      local distance = 500.0/radius
+      local u = math.abs((distance+t*10)%2)
+      local v = math.atan2(fx,fy)*(512/math.pi/2)*t
+      local color = (u^v)*distance%1
+      love.graphics.setColor(color,color,color)
+      love.graphics.circle("fill",width*.5-fx,height*.5-fy, 14, 12)
+    end
+  end
+end
+
 function drawTunnel()
   for y=-tunnel.maxy,tunnel.maxy,tunnel.pixel_scale*.5 do
     for x=-tunnel.maxx,tunnel.maxx,tunnel.pixel_scale do
@@ -62,15 +82,6 @@ function drawTunnel()
         ts=tunnel.pixel_scale*.5
       end
       local dist=(1.5-d^.25)
-
---       local dist2=(1.5-d^.75)
---       love.graphics.setColor(math.max(0,math.sin(t))*.75,c*.2,.8,math.max(0,(1+math.sin(t*5)*.25)*dist))
---       love.graphics.circle("fill",640+x+ts,400+y-tunnel.shifter, 6, 12)
---       love.graphics.setColor(1,1,1,math.max(0,dist*.25))
---       love.graphics.circle("fill",640+x+ts-3,400+y+tunnel.shifter-4, 10, 12)
---       love.graphics.setColor(c*math.abs(math.sin(t)),c*.2,c*math.abs(math.sin(t))*.75,math.max(0,(1+math.cos(t*7)*.25)*dist))
---       love.graphics.circle("fill",640+x+ts,400+y+tunnel.shifter, 10, 12)
-
       local alpha=math.max(0,(1+math.cos(t*7)*.25)*dist)
       local color=c*math.abs(math.sin(t))
       love.graphics.setColor(color,color*.2,c*.75, alpha)
