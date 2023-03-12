@@ -6,7 +6,7 @@ local app_fonts={}
 local engine_log=""
 local t=0
 local cam={
-  pos={0,0,-3.5},
+  pos={0,0,-2.3},
   spd=0.005,
   fov=300
 }
@@ -14,22 +14,20 @@ local sun={
   pos={-2,2,-3},
   exp=.6
 }
-local shift={x=250,y=200}
+local shift={x=250,y=180}
 local act_mesh=1
 local temperature=0
 local temp_delay=100
 local temp_refresh=100
-local guy_pos=0
+
 ---------------------------------------
 -- ### LOAD ###
 --
 
 function love.load()
   music = love.audio.newSource("interphace_-_escapade.mod", "stream")
-  table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 14))
-  table.insert(tex,love.graphics.newImage("bg-2.jpg"))
-  table.insert(tex,love.graphics.newImage("bg-2b.png"))
-  table.insert(tex,love.graphics.newImage("bg-2c.png"))
+  table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 32))
+  table.insert(tex,love.graphics.newImage("bg.jpg"))
   local vert, face = parseObjFile("P1X_logo.obj")
   table.insert(meshes, {vert=vert, face=face})
   local vert, face = parseObjFile("suzane.obj")
@@ -46,16 +44,13 @@ end
 
 function love.draw()
   love.graphics.setFont(app_fonts[1])
-  local wx,wy = 490,170
+  local wx,wy = 20,20
 
   drawBackground(1,0,0)
   dddRaster(meshes[act_mesh])
   --drawRoundedRectangle(wx,wy,160,160,12,{.1,.1,.1})
   --drawWindowHeader("ENGINE LOG:",wx,wy,160)
   drawWindowText(engine_log,wx,wy)
-  drawBackground(2,guy_pos,240)
-  drawBackground(3,0,377)
-
 end
 
 ---------------------------------------
@@ -78,10 +73,11 @@ function love.update(dt)
   end
   temp_refresh=temp_refresh-1
 
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",dt*.5)
+
   dddSortZ(meshes[act_mesh])
-  keyboard()
- t=t+dt
-  guy_pos=320-115+math.sin(t*.1)*160
+  keyboard(dt)
+  t=t+dt
 end
 
 ---------------------------------------
@@ -100,18 +96,19 @@ function love.keypressed(key)
   end
 end
 
-function keyboard()
+function keyboard(dt)
+  local speed=dt
   if love.keyboard.isDown("left") then
-  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",0.03)
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",speed)
   end
   if love.keyboard.isDown("right") then
-  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",-0.03)
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"y",-speed)
   end
   if love.keyboard.isDown("up") then
-  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"x",0.03)
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"x",speed)
   end
   if love.keyboard.isDown("down") then
-  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"x",-0.03)
+  meshes[act_mesh]=dddRotMesh(meshes[act_mesh],"x",-speed)
   end
 end
 
