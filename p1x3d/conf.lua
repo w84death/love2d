@@ -1,7 +1,7 @@
 function love.conf(t)
     t.window.title = "P1X 3D Engine"
-    t.window.width = 1280
-    t.window.height = 800
+    t.window.width = 640
+    t.window.height = 480
     t.window.fullscreen= true
     t.window.resizable = false
     t.modules.joystick = false

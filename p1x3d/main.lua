@@ -1,12 +1,12 @@
 require "parse_obj"
 
-
-local meshes = {}
-local app_fonts = {}
-local engine_log = ""
+local meshes={}
+local tex={}
+local app_fonts={}
+local engine_log=""
 local t=0
 local cam={
-  pos={0,0,-1.4},
+  pos={0,0,-3.5},
   spd=0.005,
   fov=300
 }
@@ -14,16 +14,22 @@ local sun={
   pos={-2,2,-3},
   exp=.6
 }
-local shift={x=600,y=280}
+local shift={x=250,y=200}
 local act_mesh=1
-
+local temperature=0
+local temp_delay=100
+local temp_refresh=100
+local guy_pos=0
 ---------------------------------------
 -- ### LOAD ###
 --
 
 function love.load()
   music = love.audio.newSource("interphace_-_escapade.mod", "stream")
-  table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 18))
+  table.insert(app_fonts,love.graphics.newFont("FutilePro.ttf", 14))
+  table.insert(tex,love.graphics.newImage("bg-2.jpg"))
+  table.insert(tex,love.graphics.newImage("bg-2b.png"))
+  table.insert(tex,love.graphics.newImage("bg-2c.png"))
   local vert, face = parseObjFile("P1X_logo.obj")
   table.insert(meshes, {vert=vert, face=face})
   local vert, face = parseObjFile("suzane.obj")
@@ -31,6 +37,7 @@ function love.load()
   local vert, face = parseObjFile("bolt.obj")
   table.insert(meshes, {vert=vert, face=face})
   dddSortZ(meshes[act_mesh])
+  temperature=getTemp()
 end
 
 ---------------------------------------
@@ -39,11 +46,16 @@ end
 
 function love.draw()
   love.graphics.setFont(app_fonts[1])
-  local wx,wy = 25,25
-  drawRoundedRectangle(wx,wy,190,160,12,{.1,.1,.1})
-  drawWindowHeader("ENGINE LOG:",wx,wy,180)
-  drawWindowText(engine_log,wx,wy)
+  local wx,wy = 490,170
+
+  drawBackground(1,0,0)
   dddRaster(meshes[act_mesh])
+  --drawRoundedRectangle(wx,wy,160,160,12,{.1,.1,.1})
+  --drawWindowHeader("ENGINE LOG:",wx,wy,160)
+  drawWindowText(engine_log,wx,wy)
+  drawBackground(2,guy_pos,240)
+  drawBackground(3,0,377)
+
 end
 
 ---------------------------------------
@@ -54,17 +66,23 @@ function love.update(dt)
   engine_log = "MUSIC: Escapade\nby Interphace\n"..
   "VERT="..#meshes[act_mesh].vert..
   "\nFACE="..#meshes[act_mesh].face..
-  "\nMEM="..math.floor(collectgarbage('count')).."KB\n"..
-  "FPS="..love.timer.getFPS()
+  "\nFPS="..love.timer.getFPS()..
+  "\nTEMP="..temperature
   if not music:isPlaying() then
       music:play()
   end
 
+  if temp_refresh<0 then
+    temperature=getTemp()
+    temp_refresh=temp_delay
+  end
+  temp_refresh=temp_refresh-1
+
   dddSortZ(meshes[act_mesh])
-
   keyboard()
+ t=t+dt
+  guy_pos=320-115+math.sin(t*.1)*160
 end
-
 
 ---------------------------------------
 -- ### EVENTS ###
@@ -101,6 +119,10 @@ end
 -- ### UI ###
 --
 
+function drawBackground(id,x,y)
+  love.graphics.draw(tex[id],x,y)
+end
+
 function drawShadowedText(message,x,y,shadow)
   local color={1,1,1}
   local color2={0,0,0}
@@ -136,7 +158,16 @@ function drawRoundedRectangle(x, y, w, h, radius, color)
   love.graphics.circle(mode, x+w-radius, y+h-radius, radius)
 end
 
+---------------------------------------
+-- ### SENSORS ###
+--
 
+function getTemp()
+  local handle=io.popen("vcgencmd measure_temp")
+  local temp=handle:read("*a")
+  handle:close()
+  return string.sub(temp,6)
+end
 
 ---------------------------------------
 -- ### 3D ENGINE ###
